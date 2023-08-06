@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	firebase "firebase.google.com/go/v4"
@@ -14,6 +15,24 @@ import (
 
 var app *firebase.App
 var authClient *auth.Client
+
+func init() {
+	logDir := "./logs"
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		os.Mkdir(logDir, os.ModePerm)
+	}
+	infoFile, err := os.OpenFile("./logs/info.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	errorFile, err := os.OpenFile("./logs/error.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	infoLogger = log.New(infoFile, "INFO: ", log.Ldate|log.Ltime)
+	errorLogger = log.New(errorFile, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+}
 
 func initializeFirebase() error {
 	opt := option.WithCredentialsFile("credential/service.json") // Replace with the path to your Firebase Admin SDK configuration file

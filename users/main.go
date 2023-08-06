@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"path/filepath"
 
@@ -27,6 +28,24 @@ type UserResponse struct {
 
 var app *firebase.App
 var authClient *auth.Client
+
+func init() {
+	logDir := "./logs"
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		os.Mkdir(logDir, os.ModePerm)
+	}
+	infoFile, err := os.OpenFile("./logs/info.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	errorFile, err := os.OpenFile("./logs/error.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	infoLogger = log.New(infoFile, "INFO: ", log.Ldate|log.Ltime)
+	errorLogger = log.New(errorFile, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+}
 
 func initializeFirebase() error {
 	opt := option.WithCredentialsFile("credential/service.json")
@@ -62,8 +81,8 @@ func register(c *gin.Context) {
 	ktpFileName := filepath.Base(ktp.Filename)
 
 	if err := c.SaveUploadedFile(ktp, filepath.Join("upload", ktpFileName)); err != nil {
-		fmt.Println("error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save KTP"})
+		errorLogger.Println("ID Card Upload: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save KTP", "errCode": "A-001"})
 		return
 	}
 
